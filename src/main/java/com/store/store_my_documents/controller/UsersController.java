@@ -20,7 +20,7 @@ import com.store.store_my_documents.service.UsersService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("user")
+@RequestMapping("/user")
 public class UsersController {
 	private final UsersService userService;
 	UsersController(UsersService userService){
@@ -33,6 +33,14 @@ public class UsersController {
 	}
 	@GetMapping("/documents")
 	public ResponseEntity<List<Document>> getMyDocuments(
+	        Authentication auth) {
+
+	    return ResponseEntity.ok(
+	            userService.getMyDocuments(auth)
+	    );
+	}
+	@GetMapping("/documents2")
+	public ResponseEntity<List<Document>> getMyDocuments2(
 	        Authentication auth) {
 
 	    return ResponseEntity.ok(

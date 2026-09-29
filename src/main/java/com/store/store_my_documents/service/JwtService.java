@@ -1,6 +1,8 @@
 package com.store.store_my_documents.service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Date;
 
 import javax.crypto.SecretKey;
 
@@ -21,9 +23,21 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(authentication.getName())
+
+                .issuedAt(new Date())
+
+                .expiration(
+                    new Date(
+                        System.currentTimeMillis()
+                        + Duration.ofMinutes(15).toMillis()
+                    )
+                )
+
                 .signWith(getKey())
+
                 .compact();
     }
+
     public String extractUsername(String token) {
 
         return Jwts.parser()
@@ -35,6 +49,7 @@ public class JwtService {
     }
 
     private SecretKey getKey() {
+
         return Keys.hmacShaKeyFor(
                 secret.getBytes(StandardCharsets.UTF_8)
         );

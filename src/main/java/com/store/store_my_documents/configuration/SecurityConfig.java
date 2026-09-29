@@ -16,9 +16,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 	 private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-	    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+	 private final JwtAuthenticationSuccessHandler jwtAuthenticationSuccessHandler;
+	    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,JwtAuthenticationSuccessHandler jwtAuthenticationSuccessHandler) {
 	        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+	        this.jwtAuthenticationSuccessHandler=jwtAuthenticationSuccessHandler;
 	    }
 	 @Bean
 	    public PasswordEncoder passwordEncoder() {
@@ -37,11 +38,22 @@ public class SecurityConfig {
 	     http
 	         .csrf(csrf -> csrf.disable())
 	         .authorizeHttpRequests(auth -> auth
-	             .requestMatchers("/auth/register", "/auth/login").permitAll()
+	             .requestMatchers("/auth/register").permitAll()
 	             .anyRequest().authenticated()
-	         ).sessionManagement(session ->
-	         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-	        		 ).addFilterBefore(
+	         )
+	         .formLogin(form -> form
+	        		    //.loginPage("/login")
+	        		   // .loginProcessingUrl("/login")
+	        		    .failureUrl("/login?error=true")
+	        		    .successHandler(jwtAuthenticationSuccessHandler)
+	        		    .permitAll()
+	        		).
+	         sessionManagement(session ->
+	         session.sessionCreationPolicy(
+	             SessionCreationPolicy.STATELESS
+	         )
+	     ).
+	        		 addFilterBefore(
 	        			        jwtAuthenticationFilter,
 	        			        UsernamePasswordAuthenticationFilter.class
 	        			);

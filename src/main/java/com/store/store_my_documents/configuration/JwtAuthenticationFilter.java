@@ -2,6 +2,8 @@ package com.store.store_my_documents.configuration;
 
 import java.io.IOException;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -11,22 +13,7 @@ import com.store.store_my_documents.service.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-
-
-import java.io.IOException;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -51,37 +38,62 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Get Authorization header
-        String authHeader = request.getHeader("Authorization");
+        String token = null;
 
-        // 2. Check whether JWT is present
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        // Get cookies
+        Cookie[] cookies = request.getCookies();
 
-            // 3. Remove "Bearer " and get only the token
-            String token = authHeader.substring(7);
+        if (cookies != null) {
 
-            // 4. Get username from JWT
-            String username = jwtService.extractUsername(token);
+            for (Cookie cookie : cookies) {
 
-            // 5. Get user's details from database
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(username);
+                if ("jwt".equals(cookie.getName())) {
 
-            // 6. Create Authentication object
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-
-            // 7. Store Authentication in SecurityContext
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+                    token = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        // 8. Continue the request
+        // JWT exists
+        if (token != null) {
+
+            try {
+
+                // Extract username and verify JWT
+                String username =
+                        jwtService.extractUsername(token);
+
+                // Get user from database
+                UserDetails userDetails =
+                        userDetailsService
+                                .loadUserByUsername(username);
+
+                // Create Authentication
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                // Store authentication
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
+
+            } catch (Exception e) {
+
+                // JWT invalid or expired
+                SecurityContextHolder
+                        .clearContext();
+
+                response.sendRedirect("/login");
+                return;
+            }
+        }
+
+        // Continue request
         filterChain.doFilter(request, response);
     }
 }

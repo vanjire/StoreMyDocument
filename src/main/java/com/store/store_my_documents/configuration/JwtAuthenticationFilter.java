@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain)
             throws ServletException, IOException {
-
+    	
         String token = null;
 
         // Get cookies
@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // JWT exists
         if (token != null) {
-
+        	System.out.println("JWT FOUND");
             try {
 
                 // Extract username and verify JWT
@@ -81,19 +81,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder
                         .getContext()
                         .setAuthentication(authentication);
+                System.out.println("AUTHENTICATED = "
+                        + SecurityContextHolder.getContext()
+                            .getAuthentication().isAuthenticated());
 
             } catch (Exception e) {
 
                 // JWT invalid or expired
-                SecurityContextHolder
-                        .clearContext();
-
-                response.sendRedirect("/login");
-                return;
+               
+            	 System.out.println("JWT ERROR = " + e);
+                SecurityContextHolder.clearContext();
+               
             }
         }
 
         // Continue request
+        System.out.println("REQUEST = " + request.getMethod()
+        + " " + request.getRequestURI());
+        System.out.println(
+        	    "AUTH BEFORE CHAIN = " +
+        	    SecurityContextHolder.getContext().getAuthentication()
+        	);
         filterChain.doFilter(request, response);
     }
 }

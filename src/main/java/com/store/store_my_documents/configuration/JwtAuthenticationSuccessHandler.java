@@ -35,7 +35,7 @@ public class JwtAuthenticationSuccessHandler
             throws IOException {
 
         String token = jwtService.generateToken(authentication);
-
+        
         ResponseCookie cookie = ResponseCookie
                 .from("jwt", token)
                 .httpOnly(true)
@@ -50,7 +50,7 @@ public class JwtAuthenticationSuccessHandler
         );
 
        
-            response.sendRedirect("/user/documents");
+            response.sendRedirect("/store/MyDocuments");
         
     }
 }

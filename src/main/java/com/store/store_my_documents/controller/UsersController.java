@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,7 +19,7 @@ import com.store.store_my_documents.entity.Document;
 import com.store.store_my_documents.service.UsersService;
 
 import jakarta.validation.Valid;
-
+import org.springframework.core.io.Resource;
 @RestController
 @RequestMapping("/user")
 public class UsersController {
@@ -39,12 +40,11 @@ public class UsersController {
 	            userService.getMyDocuments(auth)
 	    );
 	}
-	@GetMapping("/documents2")
-	public ResponseEntity<List<Document>> getMyDocuments2(
-	        Authentication auth) {
+	@GetMapping("/documents/{id}/view")
+	public ResponseEntity<Resource> viewDocument(
+	        @PathVariable Long id,
+	        Authentication auth) throws IOException {
 
-	    return ResponseEntity.ok(
-	            userService.getMyDocuments(auth)
-	    );
+	    return userService.viewDocument(id, auth);
 	}
 }

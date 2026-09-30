@@ -38,12 +38,12 @@ public class SecurityConfig {
 	     http
 	         .csrf(csrf -> csrf.disable())
 	         .authorizeHttpRequests(auth -> auth
-	             .requestMatchers("/auth/register").permitAll()
+	             .requestMatchers("/auth/register","/store/register").permitAll()
 	             .anyRequest().authenticated()
 	         )
 	         .formLogin(form -> form
-	        		    //.loginPage("/login")
-	        		   // .loginProcessingUrl("/login")
+	        		   //.loginPage("/store/login")
+	        		    //.loginProcessingUrl("/store/login")
 	        		    .failureUrl("/login?error=true")
 	        		    .successHandler(jwtAuthenticationSuccessHandler)
 	        		    .permitAll()
@@ -52,8 +52,8 @@ public class SecurityConfig {
 	         session.sessionCreationPolicy(
 	             SessionCreationPolicy.STATELESS
 	         )
-	     ).
-	        		 addFilterBefore(
+	     )
+	        	. addFilterBefore(
 	        			        jwtAuthenticationFilter,
 	        			        UsernamePasswordAuthenticationFilter.class
 	        			);

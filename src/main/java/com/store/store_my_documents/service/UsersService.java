@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
-
+import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +26,16 @@ import com.store.store_my_documents.exceptions.DocumentException;
 import com.store.store_my_documents.exceptions.UserAlreadyExistsException;
 import com.store.store_my_documents.repository.DocumentRepo;
 import com.store.store_my_documents.repository.UserRepo;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 @Service
 public class UsersService {
 	 private final AuthenticationManager authenticationManager;
@@ -36,35 +48,43 @@ public class UsersService {
 	        this.passwordEncoder = passwordEncoder;
 	        this.documentRepo=documentRepo;
 	    }
-	 @Value("${file.upload-dir}")
-	    private String uploadDir;
+	 
+	    private String uploadDir= "uploads/";
 	public void saveDocument(DocumentDto dto,Authentication auth) throws IOException{
+		
 		MultipartFile file=dto.getFile();
+		if(file==null||file.isEmpty())throw new DocumentException("file required");
 		String name=dto.getName();
-	    if (file == null || file.isEmpty()) {
-	        throw new DocumentException("File is required");
-	    }
-	    String username = auth.getName();
-	    Path folder = Paths.get(uploadDir)
-                .toAbsolutePath()
-                .normalize();
+		 try {
 
-        Files.createDirectories(folder);
-		String filename=UUID.randomUUID().toString()+"-"+file.getOriginalFilename();
-		
-		
-		
-			 Path destination = folder.resolve(filename);
-		    file.transferTo(destination);
-		    Document document = new Document();
+	            File directory = new File(uploadDir);
 
-		    document.setName(dto.getName());
-		    document.setFileName(filename);
-		    document.setFilePath(destination.toString());
-		    document.setUsername(username);
+	            if (!directory.exists()) {
+	                directory.mkdirs();
+	            }
+	           
+	            String fileName = file.getOriginalFilename();
+	            String storedFileName = UUID.randomUUID() + "_"+fileName;
+	            Path path = Paths.get(uploadDir + storedFileName);
+	            System.out.println("entered3");
+	            Files.copy(
+	                file.getInputStream(),
+	                path
+	              //  StandardCopyOption.REPLACE_EXISTING
+	            );
+	           
+	            Document d=new Document();
+	            d.setName(name);
+	            d.setFilePath(path.toString());
+	            d.setUsername(auth.getName());
+	            documentRepo.save(d);
+	          
+	            return;
 
-		    documentRepo.save(document);
-		
+	        } catch (IOException e) {
+	        	
+	            throw new RuntimeException("File upload failed");
+	        }
 	}
 	public void saveUser(RegisterDto dto){
 
@@ -88,5 +108,32 @@ public class UsersService {
 	    String username = auth.getName();
 
 	    return documentRepo.findByUsername(username);
+	}
+	public ResponseEntity<Resource> viewDocument(
+	        Long id,
+	        Authentication auth) throws IOException {
+
+	    Document document = documentRepo
+	            .findByIdAndUsername(id, auth.getName())
+	            .orElseThrow(() ->
+	                    new RuntimeException("Document not found"));
+
+	    Path path = Paths.get(document.getFilePath());
+
+	    Resource resource = new UrlResource(path.toUri());
+
+	    String contentType = Files.probeContentType(path);
+
+	    if (contentType == null) {
+	        contentType = "application/octet-stream";
+	    }
+
+	    return ResponseEntity.ok()
+	            .contentType(MediaType.parseMediaType(contentType))
+	            .header(
+	                HttpHeaders.CONTENT_DISPOSITION,
+	                "inline; filename=\"" + document.getName() + "\""
+	            )
+	            .body(resource);
 	}
 }
